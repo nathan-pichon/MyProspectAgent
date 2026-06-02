@@ -1,0 +1,19 @@
+@import "tailwindcss";
+
+:root {
+  --mpa-accent: #2E6BFF;
+  --mpa-accent2: #00C2A8;
+}
+
+html { scroll-behavior: smooth; }
+body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+.beam {
+  background: linear-gradient(135deg, var(--mpa-accent), var(--mpa-accent2));
+}
+.beam-text {
+  background: linear-gradient(135deg, var(--mpa-accent), var(--mpa-accent2));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}

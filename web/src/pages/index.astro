@@ -1,0 +1,247 @@
+---
+import Layout from '../layouts/Layout.astro';
+---
+<Layout>
+  <!-- HEADER -->
+  <header class="sticky top-0 z-40 bg-white border-b border-slate-200">
+    <div class="max-w-5xl mx-auto px-5 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2">
+        <span class="text-2xl beam-text font-bold">◎</span>
+        <span class="font-bold text-lg">MyProspectAgent</span>
+      </div>
+      <span class="text-xs text-emerald-600 border border-emerald-500 rounded-full px-3 py-1">
+        🔒 100&nbsp;% local — rien n'est envoyé
+      </span>
+    </div>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-5">
+    <!-- HERO -->
+    <section class="py-14 text-center">
+      <p class="inline-block text-xs font-bold uppercase tracking-wider text-blue-700 bg-blue-50 rounded-full px-3 py-1 mb-5">
+        Agent IA local · Open Source
+      </p>
+      <h1 class="text-4xl md:text-5xl font-bold leading-tight max-w-2xl mx-auto">
+        Décris ton client idéal une fois.<br />
+        <span class="beam-text">Ton agent trouve les prospects</span><br />
+        et rédige l'email d'approche.
+      </h1>
+      <p class="text-lg text-slate-600 max-w-xl mx-auto mt-5">
+        MyProspectAgent cherche des entreprises correspondant à ton objectif avec un LLM local,
+        score chaque prospect sur 100, extrait un contact et propose un email — sans envoyer tes données nulle part.
+      </p>
+      <a href="#wizard" class="inline-block mt-7 beam text-white font-semibold rounded-lg px-7 py-3">
+        Configurer mon agent ↓
+      </a>
+    </section>
+
+    <!-- WIZARD -->
+    <section id="wizard" class="pb-20">
+      <div class="bg-white rounded-2xl border border-slate-200 shadow-sm p-6 md:p-8">
+        <h2 class="text-2xl font-bold mb-1">Configurateur</h2>
+        <p class="text-slate-600 mb-6 text-sm">
+          Tout se passe dans ton navigateur. Aucune clé API n'est demandée ici (elles restent
+          locales). Le résultat est un <code class="bg-slate-100 px-1 rounded">prospect.config.json</code>.
+        </p>
+
+        <!-- GOAL -->
+        <fieldset class="mb-7">
+          <legend class="font-bold text-blue-700 mb-2">🎯 Objectif de prospection</legend>
+          <label class="block text-sm font-medium mb-1">Que cherches-tu ? (langage naturel)</label>
+          <textarea id="goal" rows="2" class="w-full border border-slate-300 rounded-lg p-2 text-sm"
+            placeholder="Ex: Trouver des startups SaaS qui utilisent MongoDB et pourraient vouloir un audit de performance."></textarea>
+        </fieldset>
+
+        <!-- OFFERING -->
+        <fieldset class="mb-7">
+          <legend class="font-bold text-blue-700 mb-2">🛠️ Ce que tu offres</legend>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Services (un par ligne ou séparés par virgule)</label>
+              <textarea id="services" rows="3" class="w-full border border-slate-300 rounded-lg p-2 text-sm"
+                placeholder="Audit de performance MongoDB&#10;Optimisation de schéma&#10;Architecture backend Node.js"></textarea>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Expertise / signaux tech (virgule)</label>
+              <input id="expertise" class="w-full border border-slate-300 rounded-lg p-2 text-sm"
+                placeholder="MongoDB, MongoDB Atlas, Node.js, performance" />
+              <label class="block text-sm font-medium mb-1 mt-3">Zones géographiques cibles (virgule)</label>
+              <input id="geography" class="w-full border border-slate-300 rounded-lg p-2 text-sm"
+                placeholder="France, Remote, EU" />
+            </div>
+          </div>
+          <label class="block text-sm font-medium mb-1 mt-3">Proposition de valeur (1 phrase)</label>
+          <input id="value_proposition" class="w-full border border-slate-300 rounded-lg p-2 text-sm"
+            placeholder="J'aide les équipes tech à fiabiliser et accélérer leur base MongoDB." />
+        </fieldset>
+
+        <!-- ICP -->
+        <fieldset class="mb-7">
+          <legend class="font-bold text-blue-700 mb-2">🎯 Profil de client idéal (ICP)</legend>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Signaux requis (virgule) — preuves à trouver</label>
+              <input id="signals" class="w-full border border-slate-300 rounded-lg p-2 text-sm"
+                placeholder="uses MongoDB, hiring backend, scaling data" />
+              <label class="block text-sm font-medium mb-1 mt-3">Secteurs (virgule)</label>
+              <input id="industries" class="w-full border border-slate-300 rounded-lg p-2 text-sm"
+                placeholder="SaaS, FinTech, E-commerce" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Tailles d'entreprise (virgule)</label>
+              <input id="company_sizes" class="w-full border border-slate-300 rounded-lg p-2 text-sm"
+                placeholder="startup, scale-up, PME" />
+              <label class="block text-sm font-medium mb-1 mt-3">Exclusions (virgule)</label>
+              <input id="exclusions" class="w-full border border-slate-300 rounded-lg p-2 text-sm"
+                placeholder="agences, ESN, concurrents" />
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- OUTREACH -->
+        <fieldset class="mb-7">
+          <legend class="font-bold text-blue-700 mb-2">✉️ Email de prospection</legend>
+          <div class="grid md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium mb-1">Ton nom (expéditeur)</label>
+              <input id="sender_name" class="w-full border border-slate-300 rounded-lg p-2 text-sm" placeholder="Nicolas" />
+              <label class="block text-sm font-medium mb-1 mt-3">Titre / rôle</label>
+              <input id="role_title" class="w-full border border-slate-300 rounded-lg p-2 text-sm" placeholder="Consultant freelance MongoDB & Backend" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Ton du message</label>
+              <input id="tone" class="w-full border border-slate-300 rounded-lg p-2 text-sm" placeholder="direct, concis, professionnel et chaleureux" />
+              <label class="block text-sm font-medium mb-1 mt-3">Signature</label>
+              <textarea id="signature" rows="2" class="w-full border border-slate-300 rounded-lg p-2 text-sm" placeholder="Nicolas — Consultant MongoDB&#10;https://mon-site.dev"></textarea>
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- SOURCES -->
+        <fieldset class="mb-7">
+          <legend class="font-bold text-blue-700 mb-2">🔎 Sources & seuil</legend>
+          <div class="flex flex-wrap gap-4 text-sm">
+            <label class="flex items-center gap-2"><input type="checkbox" id="src_web" checked /> Recherche web</label>
+            <label class="flex items-center gap-2"><input type="checkbox" id="src_rss" checked /> Flux RSS (signaux)</label>
+            <label class="flex items-center gap-2"><input type="checkbox" id="src_dir" checked /> Annuaires</label>
+            <label class="flex items-center gap-2" title="Respecte les ToS de LinkedIn"><input type="checkbox" id="src_li" /> LinkedIn (opt-in)</label>
+          </div>
+          <div class="mt-4 flex items-center gap-3 text-sm">
+            <label for="threshold" class="font-medium">Seuil de confiance</label>
+            <input id="threshold" type="range" min="0" max="100" value="55" class="flex-1" />
+            <span id="threshold_val" class="font-bold w-8 text-right">55</span>
+          </div>
+        </fieldset>
+
+        <!-- ACTIONS -->
+        <div class="flex flex-wrap gap-3 pt-2 border-t border-slate-200">
+          <button id="genBtn" class="beam text-white font-semibold rounded-lg px-6 py-2.5">Générer ma config</button>
+          <button id="dlBtn" class="hidden border border-slate-300 rounded-lg px-5 py-2.5 font-semibold">⬇ Télécharger prospect.config.json</button>
+        </div>
+
+        <!-- OUTPUT -->
+        <div id="output" class="hidden mt-6">
+          <p class="text-sm font-medium mb-2">Option A — commande courte (colle dans ton terminal) :</p>
+          <pre class="bg-slate-900 text-slate-100 rounded-lg p-3 text-xs overflow-x-auto"><code id="cmd"></code></pre>
+          <p class="text-sm font-medium mb-2 mt-4">Option B — le JSON :</p>
+          <pre class="bg-slate-100 rounded-lg p-3 text-xs overflow-x-auto max-h-72"><code id="jsonOut"></code></pre>
+        </div>
+      </div>
+
+      <p class="text-xs text-slate-500 mt-6 text-center max-w-2xl mx-auto">
+        ⚖️ L'agent rédige les emails mais ne les envoie jamais — tu envoies depuis ton propre client mail.
+        N'utilise que des contacts publics, respecte le RGPD et les opt-out. La source LinkedIn est opt-in (ToS).
+      </p>
+    </section>
+  </main>
+
+  <footer class="border-t border-slate-200 py-6 text-center text-sm text-slate-500">
+    MyProspectAgent · local-first · open source · ton LLM, ta machine
+  </footer>
+
+  <script is:inline>
+    const $ = (id) => document.getElementById(id);
+    const list = (id) =>
+      ($(id).value || '')
+        .split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
+
+    $('threshold').addEventListener('input', () => { $('threshold_val').textContent = $('threshold').value; });
+
+    function buildConfig() {
+      return {
+        schema_version: '1.0',
+        goal: $('goal').value.trim(),
+        offering: {
+          services: list('services'),
+          expertise: list('expertise'),
+          value_proposition: $('value_proposition').value.trim(),
+          languages: ['fr', 'en'],
+          geography: list('geography'),
+        },
+        icp: {
+          signals: list('signals'),
+          industries: list('industries'),
+          company_sizes: list('company_sizes'),
+          exclusions: list('exclusions'),
+        },
+        outreach: {
+          sender_name: $('sender_name').value.trim(),
+          role_title: $('role_title').value.trim() || 'Freelance',
+          signature: $('signature').value,
+          tone: $('tone').value.trim() || 'direct, concis, professionnel et chaleureux',
+          language: 'fr',
+          call_to_action: 'proposer un court échange de 15 minutes',
+          max_words: 140,
+        },
+        llm: {
+          provider: 'ollama', model: 'gemma4:e2b', base_url: 'http://localhost:11434',
+          temperature: 0.3, json_format: true, api_key_env: 'PROSPECT_LLM_API_KEY',
+          strong_provider: null, strong_model: null, strong_base_url: null,
+          strong_api_key_env: 'PROSPECT_STRONG_LLM_API_KEY',
+        },
+        search: {
+          modes: ['WEB', 'TECH_SIGNAL', 'DIRECTORY'].concat($('src_li').checked ? ['LINKEDIN'] : []),
+          directories: ['societe.com', 'pappers.fr', 'welcometothejungle.com', 'stackshare.io'],
+          max_steps: 200, max_results_per_query: 20,
+        },
+        sources: {
+          web_search_enabled: $('src_web').checked,
+          linkedin_enabled: $('src_li').checked,
+          rss_enabled: $('src_rss').checked,
+          directories_enabled: $('src_dir').checked,
+          rss_feeds: [],
+        },
+        scoring: { threshold: parseInt($('threshold').value, 10) },
+        filters: { domain_blacklist: [], reject_url_patterns: [], fasttrack_company_patterns: [] },
+        schedule: { enabled: false, every_hours: 12.0, notify: true },
+      };
+    }
+
+    function b64url(str) {
+      const bytes = new TextEncoder().encode(str);
+      let bin = '';
+      bytes.forEach((b) => (bin += String.fromCharCode(b)));
+      return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+    }
+
+    let lastJson = '';
+    $('genBtn').addEventListener('click', () => {
+      const cfg = buildConfig();
+      lastJson = JSON.stringify(cfg, null, 2);
+      $('jsonOut').textContent = lastJson;
+      $('cmd').textContent = 'mpa init --b64 ' + b64url(JSON.stringify(cfg));
+      $('output').classList.remove('hidden');
+      $('dlBtn').classList.remove('hidden');
+      $('output').scrollIntoView({ behavior: 'smooth' });
+    });
+
+    $('dlBtn').addEventListener('click', () => {
+      const blob = new Blob([lastJson], { type: 'application/json' });
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = 'prospect.config.json';
+      a.click();
+      URL.revokeObjectURL(a.href);
+    });
+  </script>
+</Layout>

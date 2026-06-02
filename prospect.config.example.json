@@ -1,0 +1,62 @@
+{
+  "schema_version": "1.0",
+  "goal": "Trouver des entreprises (startups & PME tech) qui utilisent MongoDB et qui pourraient avoir besoin d'un audit de performance / sécurité MongoDB.",
+  "offering": {
+    "services": [
+      "Audit de performance MongoDB",
+      "Optimisation de schéma et d'index MongoDB",
+      "Architecture backend Node.js / TypeScript"
+    ],
+    "expertise": ["MongoDB", "MongoDB Atlas", "Node.js", "TypeScript", "performance", "scaling"],
+    "value_proposition": "J'aide les équipes tech à fiabiliser et accélérer leur base MongoDB (latence, coûts, scaling) via un audit actionnable.",
+    "languages": ["fr", "en"],
+    "geography": ["France", "Remote", "EU"]
+  },
+  "icp": {
+    "signals": ["uses MongoDB", "MongoDB Atlas", "hiring backend / Node.js engineers", "scaling data"],
+    "industries": ["SaaS", "FinTech", "E-commerce", "HealthTech"],
+    "company_sizes": ["startup", "scale-up", "PME"],
+    "exclusions": ["agences de dev", "ESN/SSII", "concurrents consultants MongoDB"]
+  },
+  "outreach": {
+    "sender_name": "Nicolas",
+    "role_title": "Consultant freelance MongoDB & Backend",
+    "signature": "Nicolas — Consultant MongoDB & Backend\nhttps://mon-site.dev",
+    "tone": "direct, concis, professionnel et chaleureux",
+    "language": "fr",
+    "call_to_action": "proposer un court échange de 15 minutes",
+    "max_words": 140
+  },
+  "llm": {
+    "provider": "ollama",
+    "model": "gemma4:e2b",
+    "base_url": "http://localhost:11434",
+    "temperature": 0.3,
+    "json_format": true,
+    "api_key_env": "PROSPECT_LLM_API_KEY",
+    "strong_provider": null,
+    "strong_model": null,
+    "strong_base_url": null,
+    "strong_api_key_env": "PROSPECT_STRONG_LLM_API_KEY"
+  },
+  "search": {
+    "modes": ["TECH_SIGNAL", "WEB", "DIRECTORY"],
+    "directories": ["welcometothejungle.com", "boards.greenhouse.io", "jobs.lever.co", "jobs.ashbyhq.com", "apply.workable.com", "stackshare.io", "societe.com", "pappers.fr"],
+    "max_steps": 200,
+    "max_results_per_query": 20
+  },
+  "sources": {
+    "web_search_enabled": true,
+    "linkedin_enabled": false,
+    "rss_enabled": true,
+    "directories_enabled": true,
+    "rss_feeds": []
+  },
+  "scoring": { "threshold": 55 },
+  "filters": {
+    "domain_blacklist": ["wikipedia.org", "reddit.com", "stackoverflow.com", "github.com", "medium.com", "g2.com", "capterra.com", "getapp.com", "mongodb.com", "aws.amazon.com"],
+    "reject_url_patterns": ["/blog/", "/article/", "/news/", "/login", "?page="],
+    "fasttrack_company_patterns": ["/about", "/a-propos", "/contact", "/company", "/careers"]
+  },
+  "schedule": { "enabled": false, "every_hours": 12.0, "notify": true }
+}

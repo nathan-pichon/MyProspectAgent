@@ -1,0 +1,18 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+*.egg-info/
+.pytest_cache/
+build/
+dist/
+
+# Local data & secrets (NEVER commit)
+prospect.db
+prospect.config.json
+.prospect_secrets.json
+.prospect_tuning.txt
+.prospect_dashboard.html
+
+# OS
+.DS_Store
