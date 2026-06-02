@@ -13,6 +13,11 @@ permissions:
   pages: write
   id-token: write
 
+# Force bundled JS actions (checkout/setup-node/upload-artifact inside
+# withastro/action) to run on Node 24 — silences the Node 20 deprecation notice.
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 # Allow one concurrent deployment.
 concurrency:
   group: pages

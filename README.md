@@ -5,6 +5,8 @@
 > contact, explique pourquoi ça matche, et rédige un email de prospection — le tout sur **ta**
 > machine avec **ton** LLM. Rien n'est envoyé à un backend hébergé.
 
+🔗 **Configurateur en ligne (zéro backend)** : https://nathan-pichon.github.io/MyProspectAgent/
+
 CLI : **`mpa`** · Package Python : `prospect` · LLM par défaut : **Ollama / `gemma4:e2b`** (tourne
 sur une petite machine), branchable sur un modèle plus puissant ou cloud.
 
