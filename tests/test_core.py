@@ -188,6 +188,30 @@ def test_qualifier_hallucinated_signal_is_capped():
     assert ev["score"] == 58
 
 
+def test_qualifier_keeps_short_known_term_quote():
+    """Regression: a short quote like 'MongoDB' (7 chars) that matches a known
+    target term must be accepted as verified evidence — not dropped by a blanket
+    length cutoff (the bug that buried real MongoDB users in why-not)."""
+    cfg = default_config()  # expertise includes "MongoDB", "Node.js"
+    text = "Backend\nNode.js\n100%\nMongoDB\n100%\nFrontend\nTypeScript"
+    llm = FakeLLM({
+        "score": 70, "company": "Teale", "summary": "Utilise MongoDB.",
+        "signals_found": [
+            {"quote": "MongoDB", "signal": "uses MongoDB"},
+            {"quote": "Node.js", "signal": "Node.js"},
+        ],
+        "breakdown": {
+            "signal": {"score": 35, "max": 40}, "need": {"score": 15, "max": 25},
+            "icp": {"score": 15, "max": 20}, "reachability": {"score": 5, "max": 15},
+        },
+    })
+    ev = qualifier.evaluate(llm, cfg, text, source_url="https://wttj.test/teale")
+    assert ev["signal_verified"] is True
+    quotes = [s["quote"] for s in ev["signals_found"]]
+    assert "MongoDB" in quotes and "Node.js" in quotes
+    assert ev["breakdown"]["signal"]["score"] == 35  # not capped
+
+
 def test_qualifier_handles_garbage_output():
     cfg = default_config()
     llm = FakeLLM({})  # empty → everything defaults to 0

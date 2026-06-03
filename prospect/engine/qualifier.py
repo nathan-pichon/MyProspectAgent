@@ -42,11 +42,19 @@ def _norm(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "").lower()).strip()
 
 
-def _verify_signals(raw_signals: Any, lead_text: str, source_url: str) -> list[dict]:
-    """Keep only signals whose quote actually appears in the source text."""
+def _verify_signals(raw_signals: Any, lead_text: str, source_url: str,
+                    known_terms: set[str] | None = None) -> list[dict]:
+    """Keep only signals whose quote actually appears in the source text.
+
+    A quote is accepted if it is present AND either reasonably long (≥ 8 chars)
+    OR it matches a known target term (e.g. "MongoDB", "Node.js"). The latter is
+    essential: the most decisive signal tokens are short, so a blanket length
+    cutoff would wrongly discard the exact evidence we care about.
+    """
     if not isinstance(raw_signals, list):
         return []
     haystack = _norm(lead_text)
+    known = known_terms or set()
     verified: list[dict] = []
     for s in raw_signals:
         if not isinstance(s, dict):
@@ -55,8 +63,9 @@ def _verify_signals(raw_signals: Any, lead_text: str, source_url: str) -> list[d
         if not quote:
             continue
         needle = _norm(quote)
-        # Require a reasonably specific quote that is genuinely present.
-        if len(needle) >= 8 and needle in haystack:
+        if not needle or needle not in haystack:
+            continue
+        if len(needle) >= 8 or needle in known or any(k in needle for k in known):
             verified.append({
                 "quote": quote[:300],
                 "signal": str(s.get("signal", "")).strip(),
@@ -107,7 +116,10 @@ def evaluate(
         }
 
     # --- evidence-grounding guardrail (deterministic) --------------------- #
-    signals_found = _verify_signals(data.get("signals_found"), lead_text, source_url)
+    known_terms = {
+        _norm(t) for t in (cfg.icp.signals + cfg.offering.expertise) if _norm(t)
+    }
+    signals_found = _verify_signals(data.get("signals_found"), lead_text, source_url, known_terms)
     if not signals_found and breakdown["signal"]["score"] > SIGNAL_CAP_WITHOUT_EVIDENCE:
         # The model claimed a signal it couldn't ground — cap it and flag it.
         breakdown["signal"]["score"] = SIGNAL_CAP_WITHOUT_EVIDENCE
