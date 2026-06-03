@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field
-from urllib.parse import urlparse
+from urllib.parse import urljoin, urlparse
 
 from prospect.util import domain_of
 
@@ -142,3 +142,122 @@ def extract(text: str, links: list[str] | None = None, page_url: str = "") -> Co
                 c.socials.append(href)
 
     return c
+
+
+# --------------------------------------------------------------------------- #
+# Website enrichment — follow the company's own site when the lead page (ATS /
+# aggregator) carries no direct contact.
+# --------------------------------------------------------------------------- #
+
+# Hosts where the contact lives elsewhere (the company's own site).
+_AGGREGATOR_HOSTS = (
+    "welcometothejungle.com", "boards.greenhouse.io", "jobs.lever.co",
+    "jobs.ashbyhq.com", "apply.workable.com", "linkedin.com",
+    "societe.com", "pappers.fr", "stackshare.io",
+)
+_SOCIAL_HOSTS = (
+    "linkedin.com", "twitter.com", "x.com", "facebook.com", "github.com",
+    "youtube.com", "instagram.com", "tiktok.com", "pinterest.com",
+)
+_SITE_LINK_RE = re.compile(
+    r"voir le site|visiter le site|site web|notre site|leur site|company website|"
+    r"visit (the )?website|website|site officiel",
+    re.I,
+)
+_CONTACT_LINK_RE = re.compile(r"contact|nous[- ]contacter|contactez|about|à propos|a-propos|équipe|team", re.I)
+
+
+def _is_external_company_url(href: str, page_host: str) -> bool:
+    if not href.startswith("http"):
+        return False
+    h = domain_of(href).lower().removeprefix("www.")
+    if not h or "." not in h:
+        return False
+    if h == page_host.removeprefix("www."):
+        return False
+    if any(a in h for a in _AGGREGATOR_HOSTS) or any(s in h for s in _SOCIAL_HOSTS):
+        return False
+    return True
+
+
+def pick_company_website(anchors: list[dict], page_url: str) -> str:
+    """From an aggregator page's anchors, find the company's own website.
+
+    Prefers an explicit "Voir le site" / "website" link; falls back to the first
+    plausible external (non-social, non-aggregator) link."""
+    page_host = domain_of(page_url).lower()
+    labelled = [a for a in anchors if _SITE_LINK_RE.search(a.get("text", "") or "")
+                and _is_external_company_url(a.get("href", ""), page_host)]
+    if labelled:
+        return labelled[0]["href"]
+    for a in anchors:
+        if _is_external_company_url(a.get("href", ""), page_host):
+            return a["href"]
+    return ""
+
+
+def _pick_contact_page(anchors: list[dict], site_url: str) -> str:
+    """A same-site contact/about page link to follow for an email."""
+    site_host = domain_of(site_url).lower().removeprefix("www.")
+    for a in anchors:
+        href = a.get("href", "")
+        text = a.get("text", "") or ""
+        if not href:
+            continue
+        absolute = href if href.startswith("http") else urljoin(site_url, href)
+        if domain_of(absolute).lower().removeprefix("www.") != site_host:
+            continue
+        if _CONTACT_LINK_RE.search(text) or _CONTACT_LINK_RE.search(href):
+            return absolute
+    return ""
+
+
+def merge(base: Contacts, extra: Contacts) -> Contacts:
+    """Fill missing fields of `base` from `extra` (extra = enrichment result)."""
+    if not base.email and extra.email:
+        base.email, base.email_type = extra.email, extra.email_type
+    base.linkedin = base.linkedin or extra.linkedin
+    base.website = base.website or extra.website
+    for u in extra.all_emails:
+        if u not in base.all_emails:
+            base.all_emails.append(u)
+    for s in extra.socials:
+        if s not in base.socials:
+            base.socials.append(s)
+    return base
+
+
+def needs_enrichment(url: str, base: Contacts) -> bool:
+    """True when the lead is on an aggregator/ATS host and we have no email yet."""
+    if base.email:
+        return False
+    host = domain_of(url).lower()
+    return any(a in host for a in _AGGREGATOR_HOSTS)
+
+
+def enrich_from_website(base: Contacts, anchors: list[dict], page_url: str, fetch) -> Contacts:
+    """If the lead has no email, follow its company website (+ one contact page)
+    and merge any contact found. `fetch(url)` returns a page-like object with
+    `.text`, `.links`, and `.anchors` (e.g. scrapers.extract). Bounded to at most
+    two extra fetches to keep runs cheap."""
+    if base.email:
+        return base
+    site = pick_company_website(anchors, page_url)
+    if not site:
+        return base
+    home = fetch(site)
+    if not home or not getattr(home, "text", ""):
+        return base
+    found = extract(home.text, getattr(home, "links", []), site)
+    if not found.email:
+        contact_url = _pick_contact_page(getattr(home, "anchors", []) or [], site)
+        if contact_url:
+            cp = fetch(contact_url)
+            if cp and getattr(cp, "text", ""):
+                cp_contacts = extract(cp.text, getattr(cp, "links", []), contact_url)
+                if cp_contacts.email:
+                    found = cp_contacts
+    # The lead's own "website" is the aggregator (WTTJ/ATS) URL, which is wrong —
+    # replace it with the company's actual site we just navigated to.
+    base.website = found.website or site
+    return merge(base, found)

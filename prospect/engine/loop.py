@@ -48,7 +48,25 @@ def _evaluate_lead(lead, page, llm_strong, cfg, store, stats, threshold) -> None
         return
 
     links = page.links if page else []
+    anchors = page.anchors if page else []
     contacts = contacts_mod.extract(text, links, url)
+
+    # Aggregator/ATS leads (e.g. Welcome to the Jungle) rarely expose an email on
+    # the listing — follow the company's own site ("Voir le site") to find one,
+    # before scoring so Reachability reflects it.
+    if anchors and contacts_mod.needs_enrichment(url, contacts):
+        from prospect.engine import scrapers as _scrapers
+
+        def _fetch(u):
+            try:
+                return _scrapers.extract(u)
+            except Exception:  # noqa: BLE001
+                return None
+
+        before = contacts.email
+        contacts = contacts_mod.enrich_from_website(contacts, anchors, url, _fetch)
+        if contacts.email and not before:
+            console.print(f"  [dim]↳ contact enrichi via {domain_of(contacts.website or url)}: {contacts.email}[/]")
 
     evaluation = qualifier.evaluate(llm_strong, cfg, text, contacts=contacts, source_url=url)
 

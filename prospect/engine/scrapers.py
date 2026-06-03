@@ -39,7 +39,8 @@ class Page:
     url: str
     text: str = ""
     html: str = ""
-    links: list[str] = field(default_factory=list)  # all hrefs incl. mailto:
+    links: list[str] = field(default_factory=list)   # all hrefs incl. mailto:
+    anchors: list[dict] = field(default_factory=list)  # [{text, href}] — for "Voir le site"
     title: str = ""
 
     @property
@@ -97,7 +98,8 @@ def extract(url: str, max_chars: int = 6000) -> Page:
             page.goto(url, wait_until="domcontentloaded", timeout=25000)
             page.wait_for_timeout(1500)
             # Grab links + title BEFORE stripping noise (footers carry contacts).
-            page_obj.links = _collect_links(page)
+            page_obj.anchors = _collect_anchors(page)
+            page_obj.links = [a["href"] for a in page_obj.anchors]
             try:
                 page_obj.title = (page.title() or "").strip()
             except Exception:  # noqa: BLE001
@@ -118,13 +120,16 @@ def extract_text(url: str, max_chars: int = 6000) -> str:
     return extract(url, max_chars).text
 
 
-def _collect_links(page) -> list[str]:
-    js = "(() => Array.from(document.querySelectorAll('a[href]')).map(a => a.getAttribute('href')))()"
+def _collect_anchors(page) -> list[dict]:
+    js = """(() => Array.from(document.querySelectorAll('a[href]')).map(a => ({
+        href: a.getAttribute('href'),
+        text: (a.textContent || '').trim().slice(0, 80)
+    })))()"""
     try:
-        hrefs = page.evaluate(js) or []
+        anchors = page.evaluate(js) or []
     except Exception:  # noqa: BLE001
         return []
-    return [h for h in hrefs if isinstance(h, str) and h.strip()]
+    return [a for a in anchors if isinstance(a, dict) and isinstance(a.get("href"), str) and a["href"].strip()]
 
 
 def _strip_noise(page) -> None:

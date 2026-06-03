@@ -42,6 +42,30 @@ def _norm(s: str) -> str:
     return re.sub(r"\s+", " ", (s or "").lower()).strip()
 
 
+def _reachability(contacts) -> tuple[int, list[str]]:
+    """Score reachability deterministically from the extracted contacts (max 15).
+
+    We know exactly what contact we have, so this must not be left to the model
+    (a 2B model scored it 0 even with a LinkedIn page present)."""
+    if contacts is None:
+        return 0, []
+    email = getattr(contacts, "email", "")
+    etype = getattr(contacts, "email_type", "")
+    linkedin = getattr(contacts, "linkedin", "")
+    website = getattr(contacts, "website", "")
+    if email and etype == "named":
+        return 15, [f"email nominatif ({email})"]
+    if email and etype == "role":
+        return 13, [f"email de fonction ({email})"]
+    if email:
+        return 10, [f"email générique ({email})"]
+    if linkedin:
+        return 9, ["page LinkedIn"] + (["site web"] if website else [])
+    if website:
+        return 6, ["site web (formulaire de contact probable)"]
+    return 0, []
+
+
 def _verify_signals(raw_signals: Any, lead_text: str, source_url: str,
                     known_terms: set[str] | None = None) -> list[dict]:
     """Keep only signals whose quote actually appears in the source text.
@@ -127,7 +151,15 @@ def evaluate(
             {"item": "Aucune preuve textuelle du signal recherché", "type": "blocking"}
         )
 
-    # Recompute the total from (possibly capped) sub-scores — keeps it honest.
+    # Reachability is deterministic — we know exactly what contact we extracted,
+    # so we override the model's (noisy) guess. But a not-a-company page (model
+    # total 0) must stay 0: don't resurrect it via a contact.
+    if contacts is not None and not (data.get("score") == 0 and not signals_found):
+        reach_score, reach_matched = _reachability(contacts)
+        breakdown["reachability"]["score"] = reach_score
+        breakdown["reachability"]["matched"] = reach_matched
+
+    # Recompute the total from (possibly capped/overridden) sub-scores.
     score = sum(breakdown[k]["score"] for k in _MAXES)
     score = clamp_int(score, 0, 100, default=0)
 

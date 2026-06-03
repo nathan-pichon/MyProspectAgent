@@ -74,6 +74,50 @@ def test_contact_extraction_and_classification():
     assert c.website == "https://acme.com"
 
 
+def test_pick_company_website():
+    anchors = [
+        {"text": "Trouver un job", "href": "https://www.welcometothejungle.com/fr/jobs"},
+        {"text": "Voir le site", "href": "https://teale.io"},
+        {"text": "LinkedIn", "href": "https://linkedin.com/company/teale"},
+    ]
+    assert contacts_mod.pick_company_website(anchors, "https://www.welcometothejungle.com/fr/companies/teale") == "https://teale.io"
+    # no labelled link → first plausible external
+    anchors2 = [{"text": "x", "href": "https://acme.io/page"}, {"text": "li", "href": "https://linkedin.com/company/x"}]
+    assert contacts_mod.pick_company_website(anchors2, "https://boards.greenhouse.io/acme") == "https://acme.io/page"
+    # nothing external
+    assert contacts_mod.pick_company_website([{"text": "jobs", "href": "/fr/jobs"}], "https://welcometothejungle.com/x") == ""
+
+
+def test_enrich_from_website_follows_company_site():
+    """ATS lead with no email → follow 'Voir le site' → extract email from the site."""
+    class FakePage:
+        def __init__(self, text, links=None, anchors=None):
+            self.text = text; self.links = links or []; self.anchors = anchors or []
+
+    pages = {
+        "https://teale.io": FakePage(
+            "Teale — santé mentale. Voir nos offres.",
+            links=[], anchors=[{"text": "Contact", "href": "https://teale.io/contact"}],
+        ),
+        "https://teale.io/contact": FakePage(
+            "Écrivez-nous : hello@teale.io", links=["mailto:hello@teale.io"],
+        ),
+    }
+    base = contacts_mod.Contacts()  # no email (as on the WTTJ tech page)
+    anchors = [{"text": "Voir le site", "href": "https://teale.io"}]
+    out = contacts_mod.enrich_from_website(base, anchors, "https://www.welcometothejungle.com/fr/companies/teale/tech", lambda u: pages.get(u))
+    assert out.email == "hello@teale.io"
+    assert out.website == "https://teale.io"
+
+
+def test_needs_enrichment_gating():
+    empty = contacts_mod.Contacts()
+    withmail = contacts_mod.Contacts(email="x@y.com")
+    assert contacts_mod.needs_enrichment("https://www.welcometothejungle.com/fr/companies/teale/tech", empty)
+    assert not contacts_mod.needs_enrichment("https://acme.com/about", empty)        # not an aggregator
+    assert not contacts_mod.needs_enrichment("https://jobs.lever.co/acme", withmail)  # already has email
+
+
 def test_email_classification():
     assert contacts_mod.classify_email("contact@x.com") == "generic"
     assert contacts_mod.classify_email("cto@x.com") == "role"
@@ -210,6 +254,27 @@ def test_qualifier_keeps_short_known_term_quote():
     quotes = [s["quote"] for s in ev["signals_found"]]
     assert "MongoDB" in quotes and "Node.js" in quotes
     assert ev["breakdown"]["signal"]["score"] == 35  # not capped
+
+
+def test_qualifier_reachability_is_deterministic():
+    """Reachability comes from the extracted contacts, not the model's guess —
+    a LinkedIn-only contact must score > 0 even if the model said 0."""
+    cfg = default_config()
+    text = "Acme — nous utilisons MongoDB en production."
+    llm = FakeLLM({
+        "score": 60, "company": "Acme", "summary": "x",
+        "signals_found": [{"quote": "nous utilisons MongoDB en production", "signal": "uses MongoDB"}],
+        "breakdown": {
+            "signal": {"score": 35, "max": 40}, "need": {"score": 15, "max": 25},
+            "icp": {"score": 15, "max": 20}, "reachability": {"score": 0, "max": 15},  # model says 0
+        },
+    })
+    only_linkedin = contacts_mod.Contacts(linkedin="https://linkedin.com/company/acme", website="https://acme.io")
+    ev = qualifier.evaluate(llm, cfg, text, contacts=only_linkedin, source_url="https://acme.io")
+    assert ev["breakdown"]["reachability"]["score"] == 9  # LinkedIn present → overridden to 9
+    named = contacts_mod.Contacts(email="jane.doe@acme.io", email_type="named")
+    ev2 = qualifier.evaluate(llm, cfg, text, contacts=named, source_url="https://acme.io")
+    assert ev2["breakdown"]["reachability"]["score"] == 15
 
 
 def test_qualifier_handles_garbage_output():
